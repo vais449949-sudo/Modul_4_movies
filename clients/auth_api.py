@@ -1,4 +1,5 @@
 from constants import LOGIN_ENDPOINT
+from models.base_models import LoginRequest, LoginResponse
 
 
 class AuthAPI:
@@ -9,36 +10,26 @@ class AuthAPI:
     def __init__(self, requester):
         self.requester = requester
 
-    def login_user(self, credentials: dict, expected_status: int = 200):
+    def login_user(self, data: LoginRequest, expected_status: int = 200):
         """
         Логин пользователя.
-
-        :param credentials: {"email": str, "password": str}
-        :param expected_status: ожидаемый статус-код
         """
         return self.requester.send_request(
             method="POST",
             endpoint=LOGIN_ENDPOINT,
-            data=credentials,
+            data=data.model_dump(),
             expected_status=expected_status
         )
 
-    def authenticate(self, creds: tuple):
+    def authenticate(self, email: str, password: str):
         """
         Авторизация и установка токена в headers.
-
-        :param creds: (email, password)
         """
-        email, password = creds
+        login_data = LoginRequest(email=email, password=password)
 
-        response = self.login_user({
-            "email": email,
-            "password": password
-        }).json()
+        response = self.login_user(login_data).json()
 
-        token = response.get("accessToken")
-        if not token:
-            raise AssertionError(" accessToken отсутствует в ответе")
+        token = LoginResponse.model_validate(response).accessToken
 
         self.requester._update_session_headers(
             Authorization=f"Bearer {token}"

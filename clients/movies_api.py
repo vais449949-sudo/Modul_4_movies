@@ -41,7 +41,7 @@ class MoviesAPI:
         )
 
     # -------- POST /movies -------- #
-    def create_movie(self, payload: dict, expected_status: int = 201):
+    def create_movie(self, payload: dict, expected_status: int = None):
         """
         Создание нового фильма.
 
