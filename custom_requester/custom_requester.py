@@ -111,3 +111,6 @@ class CustomRequester:
 
         except Exception as e:
             self.logger.info(f"\nLogging error: {type(e)} - {e}")
+    #метод для обновления фильма
+    def parse_json(self, response, model):
+        return model.model_validate(response.json())

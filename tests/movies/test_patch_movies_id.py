@@ -1,47 +1,64 @@
 import pytest
 import allure
-from models.movie_response_model import MovieResponseModel  # твоя pydantic модель
+from uuid import uuid4
 
 
 @pytest.mark.movies
 @pytest.mark.regression
-@pytest.mark.xfail(reason="BUG: PATCH /movies/{id} возвращает 404 при существующем ID")
-@allure.title("Обновление фильма (PATCH /movies/{id})")
-def test_update_movie(super_admin, created_movie):
-    """
-    Обновление фильма.
-    Проверяем обновление имени + проверяем что фильм существует в БД.
-    """
+@allure.title("Обновление фильма (PATCH /movies/{id} + DB проверка)")
+def test_patch_movie(super_admin, db_helper):
 
-    movie_id = created_movie["id"]
+    movies_api = super_admin.api.movies_api
 
-    with allure.step("Проверяем, что фильм существует через GET"):
-        movie_check = super_admin.api.movies_api.get_movie(movie_id)
-        assert movie_check.status_code == 200
+    # 1. CREATE (API)
+    base_payload = {
+        "name": f"Movie {uuid4()}",
+        "price": 100,
+        "description": "Test",
+        "location": "MSK",
+        "published": True,
+        "genreId": 1
+    }
 
-    with allure.step("Обновляем фильм"):
-        res = super_admin.api.movies_api.update_movie(
-            movie_id,
-            {
-                "name": "Updated Movie",
-                "description": created_movie["description"],
-                "price": created_movie["price"],
-                "location": created_movie["location"],
-                "imageUrl": created_movie.get("imageUrl"),
-                "published": created_movie["published"],
-                "genreId": created_movie["genreId"]
-            }
-        )
+    created = movies_api.create_movie(base_payload)
+    movie_id = created.json()["id"]
 
-    with allure.step("Проверяем ответ API (должна быть модель)"):
-        # тут упадёт из-за бага 404, но оставляем для будущего
-        movie_data = MovieResponseModel(**res.json())
-        assert movie_data.name == "Updated Movie"
+    # 2. CHECK CREATE (DB)
+    db_helper.db_session.expire_all()
+    db_movie = db_helper.get_movie_by_id(movie_id)
 
-    with allure.step("Проверяем данные в БД"):
-        db_movie = super_admin.db_helper.get_movie_by_id(movie_id)
-        assert db_movie is not None
-        assert db_movie.name == "Updated Movie"
+    assert db_movie is not None
+    assert db_movie.name == base_payload["name"]
+    assert db_movie.price == base_payload["price"]
+
+    # 3. UPDATE (API)
+    patch_payload = {
+        "name": f"UPDATED {uuid4()}",
+        "price": 200,
+        "description": "Updated",
+        "location": "MSK",
+        "published": True,
+        "genreId": 1
+    }
+
+    updated = movies_api.update_movie(movie_id, patch_payload)
+
+    # 4. CHECK UPDATE (DB)
+    db_helper.db_session.expire_all()
+    updated_db_movie = db_helper.get_movie_by_id(movie_id)
+
+    assert updated_db_movie is not None
+    assert updated_db_movie.name == patch_payload["name"]
+    assert updated_db_movie.price == patch_payload["price"]
+    assert updated_db_movie.description == patch_payload["description"]
+    assert updated_db_movie.location == patch_payload["location"]
+    assert updated_db_movie.published == patch_payload["published"]
+
+    # 5. OPTIONAL: API check
+    fetched = movies_api.get_movie_model(movie_id)
+
+    assert fetched.name == patch_payload["name"]
+    assert fetched.price == patch_payload["price"]
 
 
 @pytest.mark.movies
@@ -69,3 +86,4 @@ def test_update_movie_not_found(super_admin):
     )
 
     assert res.status_code == 404
+

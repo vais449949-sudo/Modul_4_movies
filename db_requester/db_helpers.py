@@ -82,6 +82,15 @@ class DBHelper:
             self.db_session.delete(movie)
             self.db_session.commit()
 
+    def refresh(self):
+        """Сбрасывает кеш SQLAlchemy сессии и принудительно перечитывает данные из БД.
+
+            Используется в тестах после API-операций (CREATE / UPDATE / DELETE),
+            чтобы гарантировать, что последующие DB-запросы возвращают актуальные данные,
+            а не закешированные объекты из session.
+            """
+        self.db_session.expire_all()
+
     # -------- CLEANUP -------- #
 
     def cleanup_test_data(self, objects_to_delete: list):

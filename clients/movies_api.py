@@ -1,5 +1,5 @@
 from constants import MOVIES_ENDPOINT
-
+from models.movie_response_model import MovieResponseModel
 
 class MoviesAPI:
     """
@@ -27,13 +27,6 @@ class MoviesAPI:
 
     # -------- GET /movies/{id} -------- #
     def get_movie(self, movie_id: int, expected_status: int = 200):
-        """
-        Получение информации о фильме по ID.
-
-        :param movie_id: ID фильма
-        :param expected_status: Ожидаемый статус-код
-        :return: Ответ API
-        """
         return self.requester.send_request(
             method="GET",
             endpoint=f"{MOVIES_ENDPOINT}/{movie_id}",
@@ -58,14 +51,6 @@ class MoviesAPI:
 
     # -------- PATCH /movies/{id} -------- #
     def update_movie(self, movie_id: int, payload: dict, expected_status: int = 200):
-        """
-        Обновление информации о фильме по ID.
-
-        :param movie_id: ID фильма
-        :param payload: Данные для обновления фильма
-        :param expected_status: Ожидаемый статус-код
-        :return: Ответ API
-        """
         return self.requester.send_request(
             method="PATCH",
             endpoint=f"{MOVIES_ENDPOINT}/{movie_id}",
@@ -87,3 +72,22 @@ class MoviesAPI:
             endpoint=f"{MOVIES_ENDPOINT}/{movie_id}",
             expected_status=expected_status
         )
+    #ментод для теста по обновлению фильма
+    def get_movie_model(self, movie_id: int, expected_status: int = 200):
+        response = self.requester.send_request(
+            method="GET",
+            endpoint=f"{MOVIES_ENDPOINT}/{movie_id}",
+            expected_status=expected_status
+        )
+
+        return self.requester.parse_json(response, MovieResponseModel)
+    #метод для теста по обновлению фильма
+    def update_movie_model(self, movie_id: int, payload: dict, expected_status: int = 200):
+        response = self.requester.send_request(
+            method="PATCH",
+            endpoint=f"{MOVIES_ENDPOINT}/{movie_id}",
+            data=payload,
+            expected_status=expected_status
+        )
+
+        return self.requester.parse_json(response, MovieResponseModel)
