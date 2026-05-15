@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from resources.db_creds import MoviesDbCreds
+from typing import Generator
+
 
 USERNAME = MoviesDbCreds.USERNAME
 PASSWORD = MoviesDbCreds.PASSWORD
@@ -18,6 +20,16 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_db_session():
-    """Создает новую сессию БД"""
-    return SessionLocal()
+
+def get_db_session() -> Generator[Session, None, None]:
+    """
+        Создает и предоставляет сессию базы данных.
+
+        Использует генератор для автоматического закрытия
+        сессии после завершения работы с БД.
+        """
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
